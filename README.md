@@ -1,5 +1,5 @@
 # active_record_decorator
-# This gem is still in developement
+### This gem is still in developement! contributions are welcome!
 The idea bedind this gem is to additional functionality for active record ORM module in rails to make day-to-day application development easy.
 ActiveRecord is a very powerful tool and extensively used in most Rails apps. When working on application developement we might hit upon certain situation where we felt like "It would be great if Activerecord would have given us this". ActiveRecord as a framework solved many generic cases like scopes, callbacks, relationships to larger extent. But as app application developement evolves we might face some intuitive features which does not make sense at framework level but it does make sense at application development level. Moreover ActiveRecord cannot provide all exhaustive features the whole world wants. But it definitely has the building blocks on which develeopers like us can write abstraction upon which helps others by sharing
 
@@ -61,5 +61,24 @@ end
 ```
 
 ### #on_has_one_update
+Trigger callback on parent model when has_one child is updated
 
+```
+  class User < ActiveRecord::Base
+   include ActiveRecordDecorator
+   has_one :image
+   
+   on_has_one_update :image, :on_image_last_update
+   
+   def on_image_last_update
+     update(:image_last_updated, Time.now)
+   end
+   
+  end
+   
+  class Image < ActiveRecord::Base
+    include ActiveRecordDecorator
+    belongs_to :user
+  end
 
+```
