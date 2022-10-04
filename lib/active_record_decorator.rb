@@ -1,4 +1,10 @@
 
+require 'active_record_decorator/condition_evaluator'
+require 'active_record_decorator/condition_alias_manager'
+require 'active_record_decorator/condition_evaluator_core/condition'
+require 'active_record_decorator/condition_evaluator_core/operators'
+require 'active_record_decorator/condition_evaluator_core/value_object'
+
 module ActiveRecordDecorator
   extend ActiveSupport::Concern
 
@@ -24,8 +30,9 @@ module ActiveRecordDecorator
   end
 
   included do
-    class_attribute :relation_callback_chain
+    class_attribute :relation_callback_chain, :condition_aliases
     self.relation_callback_chain = Concurrent::Array.new
+    self.condition_aliases = Concurrent::Array.new
 
     # Return self if false else self with passed scoped attached
     # @param[condition] - deciding condition true/false to attach scope
@@ -78,6 +85,21 @@ module ActiveRecordDecorator
       end
       return status
     end
+
+    def condition_alias(condition_name, *attributes)
+
+      defaults = attributes.extract_options!.dup
+      condition_name = condition_name
+      operator = defaults[:operator]
+      attr = defaults[:attr]
+      value = defaults[:value]
+      return if self.condition_aliases.detect { |rl| rl.name == condition_name }
+      self.condition_aliases << ConditionEvaluatorCore::Condition.new(condition_name, attr, operator, value)
+    end
+
+    def all_condition_aliases
+      self.condition_aliases
+    end
   end
 
   def run_callbacks_registered()
@@ -98,4 +120,9 @@ module ActiveRecordDecorator
       end
     end
   end
+
+  def condition_match?(condition_to_evaluate)
+    ActiveRecordDecorator::ConditionEvaluator.new(record: self, condition_to_evaluate: condition_to_evaluate).evaluate
+  end
+
 end
