@@ -1,4 +1,6 @@
 
+require 'active_record_decorator/assign_operation'
+require 'active_record_decorator/assign_operation_core/operation'
 require 'active_record_decorator/condition_evaluator'
 require 'active_record_decorator/condition_alias_manager'
 require 'active_record_decorator/condition_evaluator_core/condition'
@@ -30,9 +32,10 @@ module ActiveRecordDecorator
   end
 
   included do
-    class_attribute :relation_callback_chain, :condition_aliases
+    class_attribute :relation_callback_chain, :condition_aliases, :assign_operation_aliases
     self.relation_callback_chain = Concurrent::Array.new
     self.condition_aliases = Concurrent::Array.new
+    self.assign_operation_aliases = Concurrent::Array.new
 
     # Return self if false else self with passed scoped attached
     # @param[condition] - deciding condition true/false to attach scope
@@ -100,6 +103,28 @@ module ActiveRecordDecorator
     def all_condition_aliases
       self.condition_aliases
     end
+
+    def assign_operation(name, *attributes)
+      defaults = attributes.extract_options!.dup
+
+      condition_name = name
+
+      if self.instance_methods(false).include?(condition_name.to_sym)
+        raise "already method defined"
+      end
+
+
+      attr = defaults[:attr]
+      value = defaults[:value]
+      return if self.assign_operation_aliases.detect { |rl| rl.name == condition_name }
+      self.assign_operation_aliases << AssignOperationCore::Operation.new(condition_name, attr, value)
+      delegate name.to_sym, to: :assign_operation_proxy
+    end
+
+    def all_assign_operation_aliases
+      self.assign_operation_aliases
+    end
+
   end
 
   def run_callbacks_registered()
@@ -123,6 +148,10 @@ module ActiveRecordDecorator
 
   def condition_match?(condition_to_evaluate)
     ActiveRecordDecorator::ConditionEvaluator.new(record: self, condition_to_evaluate: condition_to_evaluate).evaluate
+  end
+
+  def assign_operation_proxy
+    @assign_operation_proxy ||=  ActiveRecordDecorator::AssignOperation.new(record: self)
   end
 
 end
