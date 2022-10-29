@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'active_record_decorator'
-  s.version     = '0.0.1'
+  s.version     = '0.0.2'
   s.date        = '2022-08-20'
   s.summary     = "Activerecord utilities/extensions"
   s.description = "Activerecord utilities/extensions that will helps to make day-to-day application development easily."
