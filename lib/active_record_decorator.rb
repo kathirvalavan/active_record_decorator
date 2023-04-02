@@ -154,4 +154,23 @@ module ActiveRecordDecorator
     @assign_operation_proxy ||=  ActiveRecordDecorator::AssignOperation.new(record: self)
   end
 
+  def in_batches_by_column(column:, batch_size: 1000, start: 1)
+    relation = self
+    offset_id = 0
+    start = 1 unless start.positive?
+    relation = relation.distinct(column.to_sym).order(column.to_sym).limit(batch_size)
+    relation = relation.where("#{column} >= #{start}") if start > 1
+    relation.skip_query_cache!
+    batch_relation = relation
+
+    loop do
+      data = batch_relation.pluck(column)
+      break if data.empty?
+
+      yield data
+      offset_id = data.last
+      batch_relation = relation.where("#{column} > #{offset_id}")
+    end
+  end
+
 end

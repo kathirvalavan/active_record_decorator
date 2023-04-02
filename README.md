@@ -139,3 +139,19 @@ Instead do it yourself approach, lets define the operation and tell to perform i
   
   => user.make_as_active.save
 ```
+
+#in_batches_by_column
+We have got handy [batch processing](https://api.rubyonrails.org/classes/ActiveRecord/Batches.html#method-i-in_batches) utils in rails. But one caveat here is it works on only ID column
+We might stumble upon use case where we need to process on another column which might be foreign keys or any column with more distinct values. One prerequisite is column should be indexed :) for efficient retrieval.
+In case if we want to get users who placed orders
+
+```
+class Order < ActiveRecord::Base 
+include ActiveRecordDecorator
+end
+
+Order.in_batches_by_column(column: :user_id,batch_size: 100, start:1) do |user_ids|
+  send_email_for_users(user_ids)
+end
+
+```
